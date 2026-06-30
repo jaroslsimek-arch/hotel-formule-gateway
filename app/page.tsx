@@ -23,9 +23,10 @@ const TYPEBOT_STYLE_ID = "haw-typebot-style"
 /**
  * The <typebot-standard> web component overwrites its own inline `style`
  * attribute when it upgrades, so inline styles don't stick. We instead
- * inject a one-time stylesheet (with !important) that sizes the embed to
- * fill #hotel-ai-chat-container and hides the widget's placeholder text.
- * This lives at the page level and never touches the widget files.
+ * inject a one-time stylesheet (with !important) that sizes the embed so it
+ * fills the widget's existing #hotel-ai-chat-container and hides the dashed
+ * placeholder. This only styles the embed inside the existing modal container
+ * — it does not create a separate/fullscreen container.
  */
 function ensureTypebotStyles() {
   if (document.getElementById(TYPEBOT_STYLE_ID)) return
@@ -33,12 +34,17 @@ function ensureTypebotStyles() {
   style.id = TYPEBOT_STYLE_ID
   style.textContent = `
     #hotel-ai-chat-container > p { display: none !important; }
-    #hotel-ai-chat-container { padding: 0 !important; border-style: solid !important; overflow: hidden !important; }
+    #hotel-ai-chat-container {
+      display: block !important;
+      padding: 0 !important;
+      border: none !important;
+      overflow: hidden !important;
+    }
     #hotel-ai-chat-container typebot-standard {
       display: block !important;
       width: 100% !important;
-      height: 70vh !important;
-      max-height: 70vh !important;
+      height: 60vh !important;
+      max-height: 60vh !important;
       border: none !important;
       border-radius: 1rem !important;
     }
@@ -63,10 +69,11 @@ export default function HotelFormulePage() {
 
   /**
    * Destroys the Typebot instance: removes the injected <typebot-standard>
-   * element from its container. We do this ourselves (rather than relying on
-   * React to unmount the container) because the element is a foreign DOM node
-   * appended into a React-owned container — letting React remove it can throw
-   * a reconciliation error and leave the modal stuck open.
+   * element from the existing #hotel-ai-chat-container. We do this ourselves
+   * (rather than relying on React to unmount the container) because the
+   * element is a foreign DOM node appended into a React-owned container —
+   * letting React remove it can throw a reconciliation error and leave the
+   * modal stuck open.
    */
   const destroyTypebot = useCallback(() => {
     const frame = frameRef.current
@@ -77,10 +84,10 @@ export default function HotelFormulePage() {
   }, [])
 
   /**
-   * Injects a <typebot-standard> element into the widget's
-   * #hotel-ai-chat-container placeholder and initializes Typebot.
-   * Runs only after the modal (and its container) is in the DOM, so
-   * we poll briefly until both the container and the Typebot lib exist.
+   * Injects a <typebot-standard> element into the widget's existing
+   * #hotel-ai-chat-container placeholder and initializes Typebot. Runs only
+   * after the modal (and its container) is in the DOM, so we poll briefly
+   * until both the container and the Typebot lib exist.
    */
   const mountTypebot = useCallback(() => {
     clearPoll()
@@ -144,36 +151,34 @@ export default function HotelFormulePage() {
   }, [clearPoll, destroyTypebot])
 
   return (
-    <main className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-background px-4 py-10">
-      {/* Desktop backdrop */}
-      <div
-        className="pointer-events-none absolute inset-0 hidden bg-cover bg-center md:block"
-        style={{ backgroundImage: "url(/castle-summer.jpg)" }}
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute inset-0 hidden bg-gradient-to-br from-amber-900/20 via-transparent to-stone-900/30 md:block"
-        aria-hidden="true"
-      />
-
-      {/* The widget — rendered unchanged. Typebot is wired purely via callbacks. */}
-      <div className="relative z-10 w-full max-w-md">
-        <HotelAIWidget
-          theme="hotel"
-          locale="cs"
-          mode="inline"
-          hotelName="Hotel Formule"
-          assistantName="Marta"
-          assistantImage="/marta.webp"
-          onOpenChat={handleOpenChat}
-          onCloseChat={handleCloseChat}
-        />
+    <main className="relative min-h-[100dvh] w-full bg-background">
+      {/* Simple page content. The widget floats over it as a launcher. */}
+      <div className="mx-auto max-w-2xl px-6 py-16 sm:py-24">
+        <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
+          Hotel Formule
+        </p>
+        <h1 className="mt-3 text-balance font-serif text-3xl text-foreground sm:text-4xl">
+          Vítejte v Hotelu Formule
+        </h1>
+        <p className="mt-4 max-w-prose text-pretty leading-relaxed text-muted-foreground">
+          Naše AI asistentka Marta je tu pro vás. Otevřete chat v pravém dolním rohu a zeptejte se na
+          ubytování, recepci nebo cokoli dalšího — ráda vám pomůže.
+        </p>
       </div>
 
-      {/* Branding */}
-      <p className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-xs uppercase tracking-widest text-muted-foreground/70 md:text-white/80">
-        Powered by <span className="font-medium">redorwhite AI</span>
-      </p>
+      {/* The existing widget — floating launcher in the bottom-right corner.
+          Typebot is wired purely via the onOpenChat / onCloseChat callbacks. */}
+      <HotelAIWidget
+        theme="hotel"
+        locale="cs"
+        mode="floating"
+        position="bottom-right"
+        hotelName="Hotel Formule"
+        assistantName="Marta"
+        assistantImage="/marta.webp"
+        onOpenChat={handleOpenChat}
+        onCloseChat={handleCloseChat}
+      />
     </main>
   )
 }
