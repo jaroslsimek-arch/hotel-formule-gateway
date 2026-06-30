@@ -126,9 +126,9 @@ export function AssistantCard({
               {assistantName}
             </h2>
 
-            {isHotel ? (
+            {isHotel && hotelLayout ? (
               <div className="mt-1 flex flex-col gap-0.5">
-                {hotelLayout!.roleLines.map((line, i) => (
+                {hotelLayout.roleLines.map((line, i) => (
                   <span
                     key={i}
                     className={cx(
@@ -149,7 +149,7 @@ export function AssistantCard({
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--haw-online)] opacity-60" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--haw-online)]" />
               </span>
-              {isHotel ? hotelLayout!.onlineLines.join(" • ") : onlineLabel}
+              {isHotel && hotelLayout ? hotelLayout.onlineLines.join(" • ") : onlineLabel}
             </span>
           </div>
         </motion.div>
@@ -162,8 +162,8 @@ export function AssistantCard({
           isHotel ? "pt-4 pb-4" : "pt-6 pb-7",
         )}
       >
-        {isHotel ? (
-          <HotelBody data={hotelLayout!} chatOpen={chatOpen} onCta={onCta} />
+        {isHotel && hotelLayout ? (
+          <HotelBody data={hotelLayout} chatOpen={chatOpen} onCta={onCta} />
         ) : (
           <StandardBody
             welcomeTitle={welcomeTitle}
@@ -228,7 +228,10 @@ function HotelBody({
         className="mt-3 grid grid-cols-2 gap-2"
       >
         {data.actions.map((action) => (
-          <HotelActionCard key={action.id} action={action} onClick={onCta} />
+          <HotelActionCard
+            key={action.id}
+            action={action}
+          />
         ))}
       </motion.div>
 
@@ -245,7 +248,7 @@ function HotelBody({
         className={cx(
           "mt-4 flex w-full items-center justify-center gap-3 rounded-2xl px-5 py-3",
           "text-[var(--haw-surface)]",
-          "shadow-[0_12px_28px_-12px_var(--haw-primary)] transition-shadow duration-300 hover:shadow-[0_16px_34px_-12px_var(--haw-primary)]",
+          "shadow-[0_12px_28px_-12px_var(--haw-primary)] transition-all duration-300 hover:shadow-[0_16px_34px_-12px_var(--haw-primary)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--haw-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--haw-surface)]",
         )}
         style={{ backgroundColor: "var(--haw-primary)" }}
@@ -266,29 +269,20 @@ function HotelBody({
 
 function HotelActionCard({
   action,
-  onClick,
 }: {
   action: HotelLayoutData["actions"][number]
-  onClick: () => void
 }) {
   const { icon: Icon, labels } = action
+
   return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 400, damping: 28 }}
-      aria-label={labels.join(", ")}
+    <motion.div
       className={cx(
-        "group flex h-full flex-col items-center gap-1.5 rounded-2xl border border-[var(--haw-border)] bg-[var(--haw-surface)] px-3 py-2.5 text-center",
-        "shadow-[0_2px_10px_-6px_rgba(40,60,40,0.25)] transition-all duration-300",
-        "hover:border-[color-mix(in_srgb,var(--haw-primary)_35%,var(--haw-border))] hover:shadow-[0_10px_24px_-12px_rgba(40,60,40,0.45)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--haw-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--haw-bg)]",
+        "flex h-full flex-col items-center gap-1.5 rounded-2xl border border-[var(--haw-border)] bg-[var(--haw-surface)] px-3 py-2.5 text-center",
+        "shadow-[0_2px_10px_-6px_rgba(40,60,40,0.25)]"
       )}
     >
       <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-[1.05]"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl"
         style={{
           backgroundColor: "color-mix(in srgb, var(--haw-primary) 12%, var(--haw-surface))",
           color: "var(--haw-primary)",
@@ -311,7 +305,7 @@ function HotelActionCard({
           </span>
         ))}
       </span>
-    </motion.button>
+    </motion.div>
   )
 }
 
@@ -373,7 +367,7 @@ function StandardBody({
         className={cx(
           "mt-6 flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5",
           "text-base font-medium text-[var(--haw-surface)]",
-          "shadow-[0_12px_28px_-12px_var(--haw-primary)] transition-shadow duration-300 hover:shadow-[0_16px_34px_-12px_var(--haw-primary)]",
+          "shadow-[0_12px_28px_-12px_var(--haw-primary)] transition-all duration-300 hover:shadow-[0_16px_34px_-12px_var(--haw-primary)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--haw-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--haw-surface)]",
         )}
         style={{ backgroundColor: "var(--haw-primary)" }}
