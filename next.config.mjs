@@ -29,15 +29,22 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://typebot.io",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https:",
-      "font-src 'self' data:",
-      "connect-src 'self' https://typebot.io https://*.typebot.io",
-      "frame-src https://typebot.io https://*.typebot.io",
-      "object-src 'none'",
       "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
       "form-action 'self'",
+
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://typebot.io https://app.typebot.io",
+
+      "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
+
+      "font-src 'self' data: https://fonts.bunny.net",
+
+      "img-src 'self' data: blob: https:",
+
+      "connect-src 'self' https://typebot.io https://app.typebot.io https://*.typebot.io wss://*.typebot.io",
+
+      "frame-src https://typebot.io https://app.typebot.io https://*.typebot.io",
     ].join("; "),
   },
 ]
