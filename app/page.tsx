@@ -49,12 +49,31 @@ function ensureTypebotStyles() {
 export default function HotelFormulePage() {
   // Tracks the polling timer so we can cancel it if the modal closes early.
   const pollRef = useRef<number | null>(null)
+  // The <typebot-standard> element we inject, so we can tear it down ourselves.
+  const frameRef = useRef<HTMLElement | null>(null)
+  // True while a close is settling, to block a late poll tick from re-mounting.
+  const closingRef = useRef(false)
 
   const clearPoll = useCallback(() => {
     if (pollRef.current !== null) {
       window.clearInterval(pollRef.current)
       pollRef.current = null
     }
+  }, [])
+
+  /**
+   * Destroys the Typebot instance: removes the injected <typebot-standard>
+   * element from its container. We do this ourselves (rather than relying on
+   * React to unmount the container) because the element is a foreign DOM node
+   * appended into a React-owned container — letting React remove it can throw
+   * a reconciliation error and leave the modal stuck open.
+   */
+  const destroyTypebot = useCallback(() => {
+    const frame = frameRef.current
+    if (frame?.parentNode) {
+      frame.parentNode.removeChild(frame)
+    }
+    frameRef.current = null
   }, [])
 
   /**
@@ -68,6 +87,13 @@ export default function HotelFormulePage() {
     let attempts = 0
     pollRef.current = window.setInterval(() => {
       attempts += 1
+
+      // A close started while we were polling — abort, don't mount.
+      if (closingRef.current) {
+        clearPoll()
+        return
+      }
+
       const container = document.getElementById("hotel-ai-chat-container")
 
       if (container && window.Typebot) {
@@ -81,6 +107,7 @@ export default function HotelFormulePage() {
         const frame = document.createElement("typebot-standard")
         frame.setAttribute("typebot", TYPEBOT_ID)
         container.appendChild(frame)
+        frameRef.current = frame
 
         window.Typebot?.initStandard({
           typebot: TYPEBOT_ID,
@@ -96,14 +123,25 @@ export default function HotelFormulePage() {
   }, [clearPoll])
 
   const handleOpenChat = useCallback(() => {
+    // Starting a fresh session — clear any leftover closing guard and
+    // initialize a brand-new Typebot instance.
+    closingRef.current = false
     mountTypebot()
   }, [mountTypebot])
 
   const handleCloseChat = useCallback(() => {
-    // The modal unmounts on close, removing the injected frame with it.
-    // Just stop any in-flight polling.
+    // Block a late poll tick from re-mounting during teardown, and prevent
+    // the modal from "immediately reopening".
+    closingRef.current = true
     clearPoll()
-  }, [clearPoll])
+    // Destroy the Typebot element ourselves before React unmounts the modal,
+    // so React never tries to remove a foreign DOM node it doesn't own.
+    destroyTypebot()
+    // Release the guard on the next tick, once the close has settled.
+    window.setTimeout(() => {
+      closingRef.current = false
+    }, 300)
+  }, [clearPoll, destroyTypebot])
 
   return (
     <main className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-background px-4 py-10">
