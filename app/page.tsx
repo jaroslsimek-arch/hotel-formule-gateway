@@ -1,172 +1,141 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
-import Image from "next/image"
+import { useCallback, useRef } from "react"
+import { HotelAIWidget } from "@/components/hotel-ai-widget"
+
+const TYPEBOT_ID = "hotel-formule-obt4hbe"
+const TYPEBOT_API_HOST = "https://typebot.io"
 
 declare global {
   interface Window {
-    Typebot: {
+    Typebot?: {
       initStandard: (config: {
         typebot: string
         apiHost?: string
-        style?: {
-          border?: string
-          width?: string
-          height?: string
-        }
+        style?: { border?: string; width?: string; height?: string }
       }) => void
     }
   }
 }
 
+const TYPEBOT_STYLE_ID = "haw-typebot-style"
+
+/**
+ * The <typebot-standard> web component overwrites its own inline `style`
+ * attribute when it upgrades, so inline styles don't stick. We instead
+ * inject a one-time stylesheet (with !important) that sizes the embed to
+ * fill #hotel-ai-chat-container and hides the widget's placeholder text.
+ * This lives at the page level and never touches the widget files.
+ */
+function ensureTypebotStyles() {
+  if (document.getElementById(TYPEBOT_STYLE_ID)) return
+  const style = document.createElement("style")
+  style.id = TYPEBOT_STYLE_ID
+  style.textContent = `
+    #hotel-ai-chat-container > p { display: none !important; }
+    #hotel-ai-chat-container { padding: 0 !important; border-style: solid !important; overflow: hidden !important; }
+    #hotel-ai-chat-container typebot-standard {
+      display: block !important;
+      width: 100% !important;
+      height: 70vh !important;
+      max-height: 70vh !important;
+      border: none !important;
+      border-radius: 1rem !important;
+    }
+  `
+  document.head.appendChild(style)
+}
+
 export default function HotelFormulePage() {
-  const [showSplash, setShowSplash] = useState(true)
-  const [typebotReady, setTypebotReady] = useState(false)
-  const [showChat, setShowChat] = useState(false)
+  // Tracks the polling timer so we can cancel it if the modal closes early.
+  const pollRef = useRef<number | null>(null)
 
-  const initializeTypebot = useCallback(() => {
-    if (typeof window !== "undefined" && window.Typebot && !typebotReady) {
-      try {
-        window.Typebot.initStandard({
-          typebot: "hotel-formule-obt4hbe",
-          apiHost: "https://typebot.io",
-          style: {
-            border: "none",
-            width: "100%",
-            height: "100%"
-          }
+  const clearPoll = useCallback(() => {
+    if (pollRef.current !== null) {
+      window.clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }, [])
+
+  /**
+   * Injects a <typebot-standard> element into the widget's
+   * #hotel-ai-chat-container placeholder and initializes Typebot.
+   * Runs only after the modal (and its container) is in the DOM, so
+   * we poll briefly until both the container and the Typebot lib exist.
+   */
+  const mountTypebot = useCallback(() => {
+    clearPoll()
+    let attempts = 0
+    pollRef.current = window.setInterval(() => {
+      attempts += 1
+      const container = document.getElementById("hotel-ai-chat-container")
+
+      if (container && window.Typebot) {
+        clearPoll()
+
+        // Guard against a double mount within the same open session.
+        if (container.querySelector("typebot-standard")) return
+
+        ensureTypebotStyles()
+
+        const frame = document.createElement("typebot-standard")
+        frame.setAttribute("typebot", TYPEBOT_ID)
+        container.appendChild(frame)
+
+        window.Typebot?.initStandard({
+          typebot: TYPEBOT_ID,
+          apiHost: TYPEBOT_API_HOST,
+          style: { border: "none", width: "100%", height: "100%" },
         })
-        setTypebotReady(true)
-      } catch (error) {
-        console.log("[v0] Typebot initialization error:", error)
+        return
       }
-    }
-  }, [typebotReady])
 
-  useEffect(() => {
-    // Show splash for 1.5 seconds, then trigger Typebot
-    const splashTimer = setTimeout(() => {
-      setShowSplash(false)
-      // Trigger slide-in animation
-      setTimeout(() => {
-        setShowChat(true)
-        initializeTypebot()
-      }, 100)
-    }, 1500)
+      // Give up after ~3s to avoid an endless timer.
+      if (attempts > 60) clearPoll()
+    }, 50)
+  }, [clearPoll])
 
-    return () => clearTimeout(splashTimer)
-  }, [initializeTypebot])
+  const handleOpenChat = useCallback(() => {
+    mountTypebot()
+  }, [mountTypebot])
 
-  const handleScreenClick = () => {
-    if (!typebotReady) {
-      setShowChat(true)
-      initializeTypebot()
-    }
-  }
+  const handleCloseChat = useCallback(() => {
+    // The modal unmounts on close, removing the injected frame with it.
+    // Just stop any in-flight polling.
+    clearPoll()
+  }, [clearPoll])
 
   return (
-    <div 
-      className="fixed inset-0 w-screen h-screen overflow-hidden"
-      onClick={handleScreenClick}
-    >
-      {/* Desktop: Background Image with Overlay (left side) */}
-      <div className="hidden md:block absolute inset-0 w-full h-full">
-        <Image
-          src="/castle-summer.jpg"
-          alt="Letní pohled na zámek - Hotel Formule"
-          fill
-          className="object-cover sepia-[0.15] contrast-[1.05] brightness-[0.95] saturate-[0.9]"
-          priority
-        />
-        {/* Vintage patina overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/20 via-transparent to-stone-900/25" />
-        <div className="absolute inset-0 bg-black/20" />
-        
-        {/* Hotel branding on desktop background */}
-        <div className="absolute bottom-8 left-8 text-white">
-          <h2 className="text-3xl font-light tracking-wide mb-2">Hotel Formule</h2>
-          <p className="text-sm text-white/70 tracking-widest uppercase">
-            Powered by redorwhite AI
-          </p>
-        </div>
-      </div>
-
-      {/* Splash Screen */}
+    <main className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-background px-4 py-10">
+      {/* Desktop backdrop */}
       <div
-        className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-background transition-opacity duration-500 ease-out ${
-          showSplash ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <div className="flex flex-col items-center justify-center flex-1 px-6">
-          {/* Marta Photo with Online Indicator */}
-          <div className="relative mb-8">
-            <div className="relative w-36 h-36 md:w-44 md:h-44">
-              <Image
-                src="/marta.webp"
-                alt="Marta - AI Asistentka"
-                fill
-                className="rounded-full object-cover shadow-lg"
-                priority
-              />
-              {/* Pulsing Online Indicator */}
-              <div className="absolute bottom-2 right-2 flex items-center justify-center">
-                <span className="absolute w-5 h-5 rounded-full bg-accent/40 animate-ping" />
-                <span className="relative w-4 h-4 rounded-full bg-accent border-2 border-background" />
-              </div>
-            </div>
-          </div>
-
-          {/* Greeting */}
-          <h1 className="text-2xl md:text-3xl font-light text-foreground text-center tracking-wide mb-2">
-            Ahoj, jsem Marta
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground text-center font-light">
-            vaše AI asistentka
-          </p>
-
-          {/* Subtle loading indicator */}
-          <div className="mt-12 flex gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-bounce [animation-delay:-0.3s]" />
-            <span className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-bounce [animation-delay:-0.15s]" />
-            <span className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-bounce" />
-          </div>
-        </div>
-
-        {/* Branding Footer */}
-        <div className="pb-8 md:pb-12">
-          <p className="text-xs text-muted-foreground/60 tracking-widest uppercase">
-            Powered by{" "}
-            <span className="font-medium text-muted-foreground/80">redorwhite AI</span>
-          </p>
-        </div>
-      </div>
-
-      {/* Typebot Container - Responsive: Fullscreen on mobile, sidebar on desktop */}
+        className="pointer-events-none absolute inset-0 hidden bg-cover bg-center md:block"
+        style={{ backgroundImage: "url(/castle-summer.jpg)" }}
+        aria-hidden="true"
+      />
       <div
-        id="typebot-container"
-        className={`
-          fixed z-40 bg-background
-          transition-transform duration-500 ease-out
-          
-          /* Mobile: Full screen */
-          inset-0 w-full h-full
-          
-          /* Desktop: Right sidebar 450px */
-          md:inset-auto md:right-0 md:top-0 md:w-[450px] md:h-full
-          md:shadow-2xl md:border-l md:border-border
-          
-          ${showChat ? "translate-x-0" : "translate-x-full"}
-        `}
-      >
-        <typebot-standard
-          style={{
-            width: "100%",
-            height: "100%",
-            border: "none",
-            display: "block"
-          }}
+        className="pointer-events-none absolute inset-0 hidden bg-gradient-to-br from-amber-900/20 via-transparent to-stone-900/30 md:block"
+        aria-hidden="true"
+      />
+
+      {/* The widget — rendered unchanged. Typebot is wired purely via callbacks. */}
+      <div className="relative z-10 w-full max-w-md">
+        <HotelAIWidget
+          theme="hotel"
+          locale="cs"
+          mode="inline"
+          hotelName="Hotel Formule"
+          assistantName="Marta"
+          assistantImage="/marta.webp"
+          onOpenChat={handleOpenChat}
+          onCloseChat={handleCloseChat}
         />
       </div>
-    </div>
+
+      {/* Branding */}
+      <p className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-xs uppercase tracking-widest text-muted-foreground/70 md:text-white/80">
+        Powered by <span className="font-medium">redorwhite AI</span>
+      </p>
+    </main>
   )
 }
