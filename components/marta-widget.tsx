@@ -130,10 +130,18 @@ export function MartaWidget({ mode = "floating", onChatOpenChange }: MartaWidget
         container.appendChild(frame)
         frameRef.current = frame
 
-        window.Typebot?.initStandard({
-          typebot: TYPEBOT_ID,
-          apiHost: TYPEBOT_API_HOST,
-          style: { border: "none", width: "100%", height: "100%" },
+        // Dvojitý RAF zajišťuje, že se initStandard zavolá až po plném vykreslení elementu v DOMu
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            // Pojistka, pokud by uživatel mezitím stihl chat zavřít během těch několika ms
+            if (closingRef.current) return
+
+            window.Typebot?.initStandard({
+              typebot: TYPEBOT_ID,
+              apiHost: TYPEBOT_API_HOST,
+              style: { border: "none", width: "100%", height: "100%" },
+            })
+          })
         })
         return
       }
