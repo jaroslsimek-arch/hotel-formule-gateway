@@ -82,22 +82,6 @@ export function MartaWidget({ mode = "floating", onChatOpenChange }: MartaWidget
   }, [])
 
   /**
-   * Destroys the Typebot instance: removes the injected <typebot-standard>
-   * element from the existing #hotel-ai-chat-container. We do this ourselves
-   * (rather than relying on React to unmount the container) because the
-   * element is a foreign DOM node appended into a React-owned container —
-   * letting React remove it can throw a reconciliation error and leave the
-   * modal stuck open.
-   */
-  const destroyTypebot = useCallback(() => {
-    const frame = frameRef.current
-    if (frame?.parentNode) {
-      frame.parentNode.removeChild(frame)
-    }
-    frameRef.current = null
-  }, [])
-
-  /**
    * Injects a <typebot-standard> element into the widget's existing
    * #hotel-ai-chat-container placeholder and initializes Typebot. Runs only
    * after the modal (and its container) is in the DOM, so we poll briefly
@@ -108,6 +92,13 @@ export function MartaWidget({ mode = "floating", onChatOpenChange }: MartaWidget
     let attempts = 0
     pollRef.current = window.setInterval(() => {
       attempts += 1
+
+      // Diagnostický log pro ověření tvé teorie o dostupnosti window.Typebot a DOM kontejneru
+      console.log({
+        container: !!document.getElementById("hotel-ai-chat-container"),
+        typebot: !!window.Typebot,
+        attempts,
+      })
 
       // A close started while we were polling — abort, don't mount.
       if (closingRef.current) {
@@ -130,10 +121,8 @@ export function MartaWidget({ mode = "floating", onChatOpenChange }: MartaWidget
         container.appendChild(frame)
         frameRef.current = frame
 
-        // Dvojitý RAF zajišťuje, že se initStandard zavolá až po plném vykreslení elementu v DOMu
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            // Pojistka, pokud by uživatel mezitím stihl chat zavřít během těch několika ms
             if (closingRef.current) return
 
             window.Typebot?.initStandard({
@@ -166,13 +155,17 @@ export function MartaWidget({ mode = "floating", onChatOpenChange }: MartaWidget
     clearPoll()
     // Destroy the Typebot element ourselves before React unmounts the modal,
     // so React never tries to remove a foreign DOM node it doesn't own.
-    destroyTypebot()
+    const frame = frameRef.current
+    if (frame?.parentNode) {
+      frame.parentNode.removeChild(frame)
+    }
+    frameRef.current = null
     // Release the guard on the next tick, once the close has settled.
     window.setTimeout(() => {
       closingRef.current = false
     }, 300)
     onChatOpenChange?.(false)
-  }, [clearPoll, destroyTypebot, onChatOpenChange])
+  }, [clearPoll, onChatOpenChange])
 
   return (
     <HotelAIWidget
