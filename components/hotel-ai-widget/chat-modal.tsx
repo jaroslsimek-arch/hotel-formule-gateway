@@ -27,12 +27,6 @@ interface ChatModalProps {
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
 
-/**
- * Accessible, animated modal that hosts the chat experience.
- * Handles ESC, click-outside, body scroll lock, focus trap and
- * focus restoration. Contains the `#hotel-ai-chat-container`
- * placeholder for a later chat integration (e.g. Typebot).
- */
 export function ChatModal({
   open,
   onClose,
@@ -41,7 +35,6 @@ export function ChatModal({
   assistantImage,
   onlineLabel,
   closeLabel,
-  placeholderText,
   themeVars,
   children,
 }: ChatModalProps) {
@@ -173,15 +166,11 @@ export function ChatModal({
               </button>
             </div>
 
-            {/* Body: chat placeholder + optional custom content */}
+            {/* Body: Dynamický kontejner s renderováním iframe skrze children */}
             <div className="flex-1 overflow-y-auto px-5 py-5">
-              <div
-                id="hotel-ai-chat-container"
-                className="flex min-h-[320px] w-full items-center justify-center rounded-2xl border border-dashed border-[var(--haw-border)] bg-[color-mix(in_srgb,var(--haw-primary)_4%,var(--haw-surface))] text-center text-sm text-[var(--haw-muted)]"
-              >
-                <p className="max-w-xs text-balance px-6 leading-relaxed">{placeholderText}</p>
+              <div className="h-[60dvh] w-full overflow-hidden rounded-2xl">
+                {children}
               </div>
-              {children}
             </div>
           </motion.div>
         </motion.div>
