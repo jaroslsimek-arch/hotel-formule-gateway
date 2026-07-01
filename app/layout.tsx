@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Analytics } from '@vercel/analytics/next'
-import Script from 'next/script'
+import { Analytics } from '@vercel analytics/next'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -42,29 +41,6 @@ export default function RootLayout({
   return (
     <html lang="cs">
       <body className="font-sans antialiased">
-        {/* Správné načtení Typebot knihovny přes Next.js Script */}
-        <Script
-          id="typebot-web"
-          src="https://cdn.jsdelivr.net/npm/@typebot.io/js@0.3/dist/web.js"
-          strategy="afterInteractive"
-          type="module"
-          onLoad={() => {
-            // Inicializace Bubble ihned po načtení skriptu
-            if (window.Typebot) {
-              window.Typebot.initBubble({
-                typebot: "hotel-formule-marta", // ID tvého typebotu
-                // Pokud schováváš výchozí modré tlačítko a řešíš vlastní pozici / rozměry:
-                theme: {
-                  button: {
-                    backgroundColor: "transparent", // Skrytí defaultního pozadí tlačítka
-                    customCss: "bottom: 20px; right: 20px; box-shadow: none;" // Fixní umístění vpravo dole
-                  }
-                }
-              });
-            }
-          }}
-        />
-
         {children}
         <Analytics />
       </body>
