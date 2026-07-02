@@ -220,8 +220,22 @@ function HotelBody({
         <span className="block h-px w-full bg-[var(--haw-border)]" aria-hidden="true" />
       </motion.div>
 
-      {/* Large trilingual CTA — placed directly under the heading so it is
-          fully visible without scrolling past the info cards below. */}
+      {/* Six trilingual action cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.12, ease: "easeOut" }}
+        className="mt-3 grid grid-cols-2 gap-2"
+      >
+        {data.actions.map((action) => (
+          <HotelActionCard
+            key={action.id}
+            action={action}
+          />
+        ))}
+      </motion.div>
+
+      {/* Large trilingual CTA */}
       <motion.button
         type="button"
         onClick={onCta}
@@ -232,7 +246,7 @@ function HotelBody({
         aria-expanded={chatOpen}
         aria-label={data.ctaLines.join(" · ")}
         className={cx(
-          "mt-3 flex w-full items-center justify-center gap-3 rounded-2xl px-5 py-3",
+          "mt-4 flex w-full items-center justify-center gap-3 rounded-2xl px-5 py-3",
           "text-[var(--haw-surface)]",
           "shadow-[0_12px_28px_-12px_var(--haw-primary)] transition-all duration-300 hover:shadow-[0_16px_34px_-12px_var(--haw-primary)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--haw-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--haw-surface)]",
@@ -249,21 +263,6 @@ function HotelBody({
           ))}
         </span>
       </motion.button>
-
-      {/* Six trilingual info cards (non-interactive) */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.12, ease: "easeOut" }}
-        className="mt-3 grid grid-cols-2 gap-2"
-      >
-        {data.actions.map((action) => (
-          <HotelActionCard
-            key={action.id}
-            action={action}
-          />
-        ))}
-      </motion.div>
     </>
   )
 }

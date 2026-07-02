@@ -121,13 +121,6 @@ export function MartaWidget({ mode = "floating", onChatOpenChange }: MartaWidget
     pollRef.current = window.setInterval(() => {
       attempts += 1
 
-      // Diagnostický log pro ověření tvé teorie o dostupnosti window.Typebot a DOM kontejneru
-      console.log({
-        container: !!document.getElementById("hotel-ai-chat-container"),
-        typebot: !!window.Typebot,
-        attempts,
-      })
-
       // A close started while we were polling — abort, don't mount.
       if (closingRef.current) {
         clearPoll()
