@@ -39,15 +39,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="cs">
-      <head>
-        {/* Loads the Typebot web component library and registers
-            window.Typebot (initStandard) plus the <typebot-standard> element
-            that the widget mounts into #hotel-ai-chat-container. */}
-        <script
-          src="https://cdn.jsdelivr.net/npm/@typebot.io/js@0.3/dist/web.js"
-          type="module"
-        />
-      </head>
       <body className="font-sans antialiased">
         {children}
       </body>
