@@ -21,6 +21,34 @@ declare global {
 const TYPEBOT_STYLE_ID = "haw-typebot-style"
 
 /**
+ * When the widget runs inside a cross-origin embed iframe (e.g. on Previo),
+ * many desktop browsers block third-party storage. Typebot needs storage
+ * (localStorage / session cookie) to initialize, so without this it silently
+ * fails and #hotel-ai-chat-container stays empty. We proactively request
+ * first-party storage access on the user's open gesture. Best-effort and
+ * feature-detected: on first-party / permissive contexts this is a no-op.
+ */
+async function ensureStorageAccess() {
+  try {
+    // Only relevant inside an iframe; top-level pages already have storage.
+    if (window.self === window.top) return
+    const doc = document as Document & {
+      hasStorageAccess?: () => Promise<boolean>
+      requestStorageAccess?: () => Promise<void>
+    }
+    if (typeof doc.hasStorageAccess !== "function" || typeof doc.requestStorageAccess !== "function") {
+      return
+    }
+    const already = await doc.hasStorageAccess()
+    if (!already) {
+      await doc.requestStorageAccess()
+    }
+  } catch {
+    // Denied or unsupported — fall through; Typebot will still attempt init.
+  }
+}
+
+/**
  * The <typebot-standard> web component overwrites its own inline `style`
  * attribute when it upgrades, so inline styles don't stick. We instead
  * inject a one-time stylesheet (with !important) that sizes the embed so it
@@ -147,7 +175,12 @@ export function MartaWidget({ mode = "floating", onChatOpenChange }: MartaWidget
     // Starting a fresh session — clear any leftover closing guard and
     // initialize a brand-new Typebot instance.
     closingRef.current = false
-    mountTypebot()
+    // Grant the embed iframe first-party storage (needed for Typebot in
+    // cross-origin contexts like Previo), then mount. We don't block the UI
+    // on it — mountTypebot polls for the container regardless.
+    void ensureStorageAccess().finally(() => {
+      mountTypebot()
+    })
     onChatOpenChange?.(true)
   }, [mountTypebot, onChatOpenChange])
 
