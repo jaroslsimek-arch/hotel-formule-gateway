@@ -171,7 +171,9 @@ export function HotelAIWidget({
         style={themeVars}
         className={cx("font-sans text-[var(--haw-text)]", "mx-auto w-full max-w-md", className)}
       >
-        {card}
+        {/* Hide the card while the chat modal is open so only the chat is
+            visible (avoids the card showing behind the modal). */}
+        {!chatOpen && card}
         {modal}
       </section>
     )
@@ -190,7 +192,10 @@ export function HotelAIWidget({
       )}
     >
       <AnimatePresence mode="wait" initial={false}>
-        {expanded ? (
+        {/* While the chat modal is open, hide both the launcher and the
+            expanded card so only the chat modal is visible. They animate back
+            in when the modal closes (expanded is preserved). */}
+        {chatOpen ? null : expanded ? (
           <motion.div
             key="card"
             initial={{ opacity: 0, y: 16, scale: 0.96 }}
